@@ -416,7 +416,6 @@ namespace Amaz1ngGames.InputRecorder
                     heatmapCache[(name, resolution)] = (0, new float[resolution, resolution]);
                 startInd = heatmapCache[(name, resolution)].Item1;
                 map = heatmapCache[(name, resolution)].Item2;
-                Debug.Log($"Using cache for {name}, {resolution}, startInd={startInd}");
             }
             else
             {
