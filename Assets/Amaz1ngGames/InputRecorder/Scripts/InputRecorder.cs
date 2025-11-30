@@ -490,9 +490,8 @@ namespace Amaz1ngGames.InputRecorder
                 {"ScrollWheel", (PositionRangeType.Center, new Vector2(1, 5))},
                 {"", (PositionRangeType.Center, new Vector2(1, 1))},    // Default for other actions including "Move"
             };
-            if (!heatmapParamsDict.ContainsKey(name))
-                name = "";
-            return BuildHeatmapTextureFromPositions(positions, resolution, heatmapParamsDict[name].Item1, heatmapParamsDict[name].Item2, name);
+            string keyName = heatmapParamsDict.ContainsKey(name) ? name : "";
+            return BuildHeatmapTextureFromPositions(positions, resolution, heatmapParamsDict[keyName].Item1, heatmapParamsDict[keyName].Item2, name);
         }
 
 
