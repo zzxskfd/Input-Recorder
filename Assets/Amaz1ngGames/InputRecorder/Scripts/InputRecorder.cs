@@ -30,7 +30,23 @@ namespace Amaz1ngGames.InputRecorder
 
         // For New Input System: you can assign an InputActionAsset in inspector.
         #if ENABLE_INPUT_SYSTEM
-        public InputActionAsset inputActionAsset;
+        [SerializeField]
+        protected InputActionAsset m_inputActionAsset;
+        public InputActionAsset InputActionAsset
+        {
+            get { return m_inputActionAsset; }
+            set
+            {
+                m_inputActionAsset = value;
+                SetDefaultActionsToRecord();
+            }
+        }
+        protected InputActionAsset m_prevInputActionAsset;
+        #endif
+
+        public KeyCode[] keyCodesToRecord;
+        #if ENABLE_INPUT_SYSTEM
+        public List<InputAction> actionsToRecord = new();
         #endif
 
         // Recording state
@@ -47,32 +63,15 @@ namespace Amaz1ngGames.InputRecorder
         protected Dictionary<string, int> newActionCounts = new(); // action name -> count
         protected Dictionary<string, List<Vector2>> newVector2Positions = new();
 
-        public KeyCode[] keyCodesToRecord;
-
-        #if ENABLE_INPUT_SYSTEM
-        public List<InputAction> actionsToRecord = new();
-        #endif
-
         // Heatmap cache
         protected readonly Dictionary<(string, int), (int, float[,])> heatmapCache = new();
 
-        public void SetDefault()
-        {
-            #if ENABLE_INPUT_SYSTEM
-            if (inputActionAsset == null)
-                inputActionAsset = InputSystem.actions; // Default to current actions if not set
-            SetupNewInputSystemRecording();
-            #endif
-
-            if (keyCodesToRecord == null || keyCodesToRecord.Count() == 0)
-                keyCodesToRecord = (KeyCode[])Enum.GetValues(typeof(KeyCode));
-        }
 
         protected override void Awake()
         {
             base.Awake();
             IsRecording = false;
-            SetDefault();
+            SetDefaultKeycodesAndActions();
         }
 
         protected void Update()
@@ -90,6 +89,28 @@ namespace Amaz1ngGames.InputRecorder
                 // Optionally sample anything per-frame here if desired.
                 #endif
             }
+        }
+
+        private void OnValidate()
+        {
+            // If InputActionAsset is changed in inspector, set up default actions to record.
+            #if ENABLE_INPUT_SYSTEM
+            if (m_prevInputActionAsset != m_inputActionAsset)
+                SetDefaultActionsToRecord();
+            m_prevInputActionAsset = m_inputActionAsset;
+            #endif
+        }
+
+        public void SetDefaultKeycodesAndActions()
+        {
+            #if ENABLE_INPUT_SYSTEM
+            if (InputActionAsset == null)
+                InputActionAsset = InputSystem.actions; // Default to current actions if not set
+            SetDefaultActionsToRecord();
+            #endif
+
+            if (keyCodesToRecord == null || keyCodesToRecord.Count() == 0)
+                keyCodesToRecord = (KeyCode[])Enum.GetValues(typeof(KeyCode));
         }
 
         #region Old Input System Recording
@@ -125,51 +146,64 @@ namespace Amaz1ngGames.InputRecorder
 
         #region New Input System Recording
         #if ENABLE_INPUT_SYSTEM
+        // Called when we first set up the recorder or when user assigns an InputActionAsset
+        protected void SetDefaultActionsToRecord()
+        {
+            // If recording, do not reset actions
+            if (IsRecording)
+                return;
+            actionsToRecord.Clear();
+
+            if (InputActionAsset == null)
+                return;
+
+            foreach (var map in InputActionAsset.actionMaps)
+            {
+                foreach (var action in map.actions)
+                {
+                    // Skip non-button and non-vector2 actions
+                    if (!IsActionValid(action))
+                        continue;
+
+                    actionsToRecord.Add(action);
+                }
+            }
+        }
+
         // Called when we enable recording for new Input System
         protected void SetupNewInputSystemRecording()
         {
             ClearNewInputSystemSubscriptions();
 
-            if (inputActionAsset == null)
-                return;
-
-            foreach (var map in inputActionAsset.actionMaps)
+            foreach (var action in actionsToRecord)
             {
-                foreach (var action in map.actions)
-                {
-                    // Determine whether this action is Button-like or Vector2-like
-                    bool isButton = action.type == InputActionType.Button;
-                    bool isVector = action.expectedControlType.ToLower() == "vector2";
-                    if (!isButton && !isVector)
-                        continue; // Skip non-button and non-vector2 actions
+                // Skip non-button and non-vector2 actions
+                if (!IsActionValid(action))
+                    continue;
 
-                    // We'll subscribe to performed for both; we'll parse value type at callback time
-                    action.performed += OnNewActionPerformed;
-                    actionsToRecord.Add(action);
-
-                    // initialize counters/containers
-                    if (!newActionCounts.ContainsKey(action.name))
-                        newActionCounts[action.name] = 0;
-                    if (isVector && !newVector2Positions.ContainsKey(action.name))
-                        newVector2Positions[action.name] = new List<Vector2>();
-                }
+                // We'll subscribe to performed for both; we'll parse value type at callback time
+                action.performed += OnNewActionPerformed;
             }
+        }
+
+        protected bool IsActionValid(InputAction action)
+        {
+            // Check if action is Button-like or Vector2-like
+            bool isButton = action.type == InputActionType.Button;
+            bool isVector = action.expectedControlType.ToLower() == "vector2";
+            return isButton || isVector;
         }
 
         protected void ClearNewInputSystemSubscriptions()
         {
-            if (actionsToRecord == null)
-                actionsToRecord = new List<InputAction>();
             foreach (var a in actionsToRecord)
             {
                 try
                 {
                     a.performed -= OnNewActionPerformed;
-                    a.Disable();
                 }
                 catch { }
             }
-            actionsToRecord.Clear();
         }
 
         protected void OnNewActionPerformed(InputAction.CallbackContext ctx)

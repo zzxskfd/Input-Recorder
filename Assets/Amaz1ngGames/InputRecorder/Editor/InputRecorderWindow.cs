@@ -83,12 +83,12 @@ namespace Amaz1ngGames.InputRecorder
             #if ENABLE_INPUT_SYSTEM
             if (recorderInstance.backend == InputRecorder.InputBackend.NewInputSystem)
             {
-                var asset = recorderInstance.inputActionAsset;
+                var asset = recorderInstance.InputActionAsset;
                 asset = (InputActionAsset)EditorGUILayout.ObjectField("Input Action Asset", asset, typeof(InputActionAsset), false);
-                if (asset != recorderInstance.inputActionAsset)
+                if (asset != recorderInstance.InputActionAsset)
                 {
                     Undo.RecordObject(recorderInstance, "Assign action asset");
-                    recorderInstance.inputActionAsset = asset;
+                    recorderInstance.InputActionAsset = asset;
                     EditorUtility.SetDirty(recorderInstance);
                 }
             }
@@ -293,7 +293,7 @@ namespace Amaz1ngGames.InputRecorder
             else
             {
                 recorderInstance = InputRecorder.Instance;
-                recorderInstance.SetDefault();
+                recorderInstance.SetDefaultKeycodesAndActions();
                 Selection.activeGameObject = recorderInstance.gameObject;
                 if (!Application.isPlaying)
                     Undo.RegisterCreatedObjectUndo(recorderInstance.gameObject, "Create InputRecorder");
