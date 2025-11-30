@@ -13,6 +13,13 @@ The **Input Recorder** is a Unity package designed to record and analyze user in
 - Export statistics and heatmaps to files through the EditorWindow or by calling functions in scripts.
 - Easily integrate into existing Unity projects.
 
+## Screenshots
+
+![](Screenshots/2_InputRecorder.png)
+![](Screenshots/3_InputRecorder.png)
+![](Screenshots/4_InputRecorder.png)
+![](Screenshots/5_InputRecorder.png)
+
 ## Requirements
 
 - Unity Editor 2022.3 or later.
